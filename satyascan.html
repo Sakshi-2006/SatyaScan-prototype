@@ -1,0 +1,1076 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SatyaScan</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&amp;family=DM+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  <style>
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    @keyframes pulseGlow { 0%,100%{box-shadow:0 0 20px rgba(0,255,136,0.15)} 50%{box-shadow:0 0 40px rgba(0,255,136,0.3)} }
+    @keyframes scanLine { 0%{top:-2px} 100%{top:100%} }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes gridPulse { 0%,100%{opacity:0.03} 50%{opacity:0.07} }
+    @keyframes spinLoader { to { transform: rotate(360deg); } }
+    @keyframes pulseLoader { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes checkmark { 0% { opacity: 0; transform: scale(0.5); } 60% { opacity: 1; } 100% { opacity: 1; transform: scale(1); } }
+    @keyframes progressFill { 0% { width: 0%; } to { width: 100%; } }
+    .float{animation:float 4s ease-in-out infinite}
+    .pulse-glow{animation:pulseGlow 3s ease-in-out infinite}
+    .fade-up{animation:fadeUp 0.7s ease-out both}
+    .fade-up-2{animation:fadeUp 0.7s ease-out 0.15s both}
+    .fade-up-3{animation:fadeUp 0.7s ease-out 0.3s both}
+    .fade-up-4{animation:fadeUp 0.7s ease-out 0.45s both}
+    .scan-line::after{content:'';position:absolute;left:0;width:100%;height:2px;background:linear-gradient(90deg,transparent,#00ff88,transparent);animation:scanLine 2.5s linear infinite;opacity:0.6}
+    .grid-bg{background-image:linear-gradient(rgba(0,255,136,0.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,136,0.05) 1px,transparent 1px);background-size:40px 40px;animation:gridPulse 5s ease-in-out infinite}
+    .card-hover{transition:all 0.3s ease}
+    .card-hover:hover{transform:translateY(-6px);box-shadow:0 12px 40px rgba(0,255,136,0.12)}
+
+    /* Dashboard styles */
+    .dash-card{background:rgba(15,25,20,0.8);border:1px solid rgba(0,255,136,0.1);border-radius:12px;padding:20px;transition:all 0.3s}
+    .dash-card:hover{border-color:rgba(0,255,136,0.3)}
+    .progress-ring{transition:stroke-dashoffset 0.8s ease}
+    @keyframes countUp{from{opacity:0}to{opacity:1}}
+    
+    /* Loading screen animations */
+    .loading-item { animation: slideIn 0.5s ease-out forwards; }
+    .loading-item:nth-child(1) { animation-delay: 0s; }
+    .loading-item:nth-child(2) { animation-delay: 0.3s; }
+    .loading-item:nth-child(3) { animation-delay: 0.6s; }
+    .item-check { animation: checkmark 0.6s ease-out forwards; opacity: 0; }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full" style="margin:0;font-family:'DM Sans',sans-serif;background:#080f0c;color:#e0f0e8;overflow-x:hidden">
+  <div id="app-wrapper" class="w-full h-full overflow-auto">
+   <!-- LANDING PAGE -->
+   <div id="landing-page" class="w-full">
+    <!-- Nav -->
+    <nav class="w-full flex items-center justify-between px-6 md:px-12 py-5 fade-up" style="background:rgba(8,15,12,0.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,255,136,0.08);position:sticky;top:0;z-index:50">
+     <div class="flex items-center gap-3">
+      <div class="relative" style="width:40px;height:40px">
+       <svg viewbox="0 0 40 40" width="40" height="40">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="#00ff88" stroke-width="2" stroke-dasharray="4 3" opacity="0.6" /> <circle cx="20" cy="20" r="12" fill="none" stroke="#00ff88" stroke-width="1.5" opacity="0.3" /> <circle cx="20" cy="20" r="5" fill="#00ff88" opacity="0.8" /> <line x1="20" y1="2" x2="20" y2="10" stroke="#00ff88" stroke-width="1" opacity="0.4" /> <line x1="20" y1="30" x2="20" y2="38" stroke="#00ff88" stroke-width="1" opacity="0.4" /> <line x1="2" y1="20" x2="10" y2="20" stroke="#00ff88" stroke-width="1" opacity="0.4" /> <line x1="30" y1="20" x2="38" y2="20" stroke="#00ff88" stroke-width="1" opacity="0.4" />
+       </svg>
+      </div><span id="nav-logo-text" style="font-family:'Space Mono',monospace;font-size:1.25rem;font-weight:700;color:#00ff88;letter-spacing:1px">SatyaScan</span>
+     </div><button id="nav-dashboard-btn" onclick="showDashboard()" class="px-5 py-2 rounded-lg text-sm font-semibold" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.25);cursor:pointer;transition:all 0.3s" onmouseenter="this.style.background='rgba(0,255,136,0.2)'" onmouseleave="this.style.background='rgba(0,255,136,0.1)'"> <span class="flex items-center gap-2"><i data-lucide="layout-dashboard" style="width:16px;height:16px"></i> Dashboard</span> </button>
+    </nav><!-- Hero -->
+    <section class="w-full grid-bg relative" style="padding:80px 24px 100px;text-align:center">
+     <div class="relative z-10 max-w-3xl mx-auto">
+      <div class="fade-up flex items-center justify-center gap-2 mb-6">
+       <span style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);padding:6px 16px;border-radius:99px;font-size:0.8rem;color:#00ff88;font-family:'Space Mono',monospace;letter-spacing:1px"> <i data-lucide="shield-check" style="width:14px;height:14px;display:inline;vertical-align:-2px;margin-right:6px"></i>AI-POWERED DETECTION </span>
+      </div>
+      <h1 id="hero-title" class="fade-up-2" style="font-family:'Space Mono',monospace;font-size:clamp(2rem,5vw,3.5rem);font-weight:700;line-height:1.15;margin:0 0 24px;color:#fff">Detect Truth Behind <span style="color:#00ff88;position:relative;display:inline-block">Profiles<span class="scan-line" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none"></span></span></h1>
+      <p id="hero-subtitle" class="fade-up-3" style="font-size:1.1rem;color:rgba(224,240,232,0.6);max-width:560px;margin:0 auto 40px;line-height:1.7">AI-powered analysis to unmask fake profiles, detect cyberstalkers, and protect your digital identity in real-time.</p>
+      <div class="fade-up-4 flex flex-wrap items-center justify-center gap-4">
+       <button id="hero-cta" onclick="showDashboard()" class="pulse-glow px-8 py-3.5 rounded-xl font-semibold text-base" style="background:#00ff88;color:#080f0c;border:none;cursor:pointer;transition:all 0.3s" onmouseenter="this.style.background='#33ffaa'" onmouseleave="this.style.background='#00ff88'"> View Dashboard </button>
+      </div>
+     </div><!-- Floating orbs -->
+     <div class="float hidden md:block" style="position:absolute;top:15%;left:8%;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,136,0.08),transparent);filter:blur(30px)"></div>
+     <div class="float hidden md:block" style="position:absolute;bottom:20%;right:10%;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(0,255,136,0.06),transparent);filter:blur(40px);animation-delay:1.5s"></div>
+    </section><!-- Features -->
+    <section class="w-full" style="padding:60px 24px 80px">
+     <div class="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="card-hover fade-up-2" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.1);border-radius:16px;padding:32px">
+       <div style="width:48px;height:48px;border-radius:12px;background:rgba(0,255,136,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:20px"><i data-lucide="search" style="color:#00ff88;width:24px;height:24px"></i>
+       </div>
+       <h3 style="font-family:'Space Mono',monospace;font-size:1.1rem;margin:0 0 10px;color:#fff">Profile Scanner</h3>
+       <p style="color:rgba(224,240,232,0.5);font-size:0.9rem;line-height:1.6;margin:0">Deep behavioral analysis across social platforms to identify inconsistencies and red flags.</p>
+      </div>
+      <div class="card-hover fade-up-3" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.1);border-radius:16px;padding:32px">
+       <div style="width:48px;height:48px;border-radius:12px;background:rgba(0,255,136,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:20px"><i data-lucide="shield" style="color:#00ff88;width:24px;height:24px"></i>
+       </div>
+       <h3 style="font-family:'Space Mono',monospace;font-size:1.1rem;margin:0 0 10px;color:#fff">Stalker Detection</h3>
+       <p style="color:rgba(224,240,232,0.5);font-size:0.9rem;line-height:1.6;margin:0">Pattern recognition algorithms that identify suspicious following and monitoring behaviors.</p>
+      </div>
+      <div class="card-hover fade-up-4" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.1);border-radius:16px;padding:32px">
+       <div style="width:48px;height:48px;border-radius:12px;background:rgba(0,255,136,0.1);display:flex;align-items:center;justify-content:center;margin-bottom:20px"><i data-lucide="eye" style="color:#00ff88;width:24px;height:24px"></i>
+       </div>
+       <h3 style="font-family:'Space Mono',monospace;font-size:1.1rem;margin:0 0 10px;color:#fff">Live Monitoring</h3>
+       <p style="color:rgba(224,240,232,0.5);font-size:0.9rem;line-height:1.6;margin:0">24/7 real-time alerts when suspicious activity is detected around your digital presence.</p>
+      </div>
+     </div>
+    </section><!-- How It Works -->
+    <section class="w-full" style="padding:80px 24px 100px;background:linear-gradient(180deg,rgba(8,15,12,0),rgba(0,255,136,0.02))">
+     <div class="max-w-5xl mx-auto">
+      <div class="text-center mb-16">
+       <div class="fade-up flex items-center justify-center gap-2 mb-6">
+        <span style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);padding:6px 16px;border-radius:99px;font-size:0.8rem;color:#00ff88;font-family:'Space Mono',monospace;letter-spacing:1px"> <i data-lucide="zap" style="width:14px;height:14px;display:inline;vertical-align:-2px;margin-right:6px"></i>SIMPLE PROCESS </span>
+       </div>
+       <h2 class="fade-up-2" style="font-family:'Space Mono',monospace;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;margin:0 0 16px;color:#fff">How It Works</h2>
+       <p class="fade-up-3" style="font-size:1rem;color:rgba(224,240,232,0.6);max-width:500px;margin:0 auto;line-height:1.7">Three simple steps to verify profiles and protect yourself from cyber threats</p>
+      </div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-12 relative"><!-- Connector lines -->
+       <div class="hidden md:block" style="position:absolute;top:80px;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(0,255,136,0.2),transparent);z-index:0"></div><!-- Step 1 -->
+       <div class="fade-up-2 relative z-10" style="text-align:center">
+        <div class="flex justify-center mb-6">
+         <div class="pulse-glow" style="width:96px;height:96px;border-radius:20px;background:rgba(0,255,136,0.08);border:2px solid rgba(0,255,136,0.2);display:flex;align-items:center;justify-content:center;position:relative"><i data-lucide="link" style="width:48px;height:48px;color:#00ff88"></i> <span style="position:absolute;bottom:-16px;right:-16px;width:32px;height:32px;border-radius:50%;background:#00ff88;color:#080f0c;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;font-size:1.1rem;box-shadow:0 4px 16px rgba(0,255,136,0.3)">1</span>
+         </div>
+        </div>
+        <h3 style="font-family:'Space Mono',monospace;font-size:1.2rem;margin:20px 0 12px;color:#fff">Input Profile</h3>
+        <p style="color:rgba(224,240,232,0.5);font-size:0.9rem;line-height:1.6;margin:0">Paste a profile URL or username from any social platform. Our system instantly recognizes the source.</p>
+       </div><!-- Step 2 -->
+       <div class="fade-up-3 relative z-10" style="text-align:center">
+        <div class="flex justify-center mb-6">
+         <div class="pulse-glow" style="width:96px;height:96px;border-radius:20px;background:rgba(0,255,136,0.08);border:2px solid rgba(0,255,136,0.2);display:flex;align-items:center;justify-content:center;position:relative"><i data-lucide="cpu" style="width:48px;height:48px;color:#00ff88"></i> <span style="position:absolute;bottom:-16px;right:-16px;width:32px;height:32px;border-radius:50%;background:#00ff88;color:#080f0c;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;font-size:1.1rem;box-shadow:0 4px 16px rgba(0,255,136,0.3)">2</span>
+         </div>
+        </div>
+        <h3 style="font-family:'Space Mono',monospace;font-size:1.2rem;margin:20px 0 12px;color:#fff">AI Analysis</h3>
+        <p style="color:rgba(224,240,232,0.5);font-size:0.9rem;line-height:1.6;margin:0">Advanced algorithms analyze behavioral patterns, account metadata, and cross-platform activity in real-time.</p>
+       </div><!-- Step 3 -->
+       <div class="fade-up-4 relative z-10" style="text-align:center">
+        <div class="flex justify-center mb-6">
+         <div class="pulse-glow" style="width:96px;height:96px;border-radius:20px;background:rgba(0,255,136,0.08);border:2px solid rgba(0,255,136,0.2);display:flex;align-items:center;justify-content:center;position:relative"><i data-lucide="check-square" style="width:48px;height:48px;color:#00ff88"></i> <span style="position:absolute;bottom:-16px;right:-16px;width:32px;height:32px;border-radius:50%;background:#00ff88;color:#080f0c;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;font-size:1.1rem;box-shadow:0 4px 16px rgba(0,255,136,0.3)">3</span>
+         </div>
+        </div>
+        <h3 style="font-family:'Space Mono',monospace;font-size:1.2rem;margin:20px 0 12px;color:#fff">Get Results</h3>
+        <p style="color:rgba(224,240,232,0.5);font-size:0.9rem;line-height:1.6;margin:0">Receive an instant threat assessment with detailed insights, risk scores, and recommended actions.</p>
+       </div>
+      </div>
+     </div>
+    </section><!-- Scan Profile Section -->
+    <section class="w-full" style="padding:80px 24px 100px;background:linear-gradient(180deg,rgba(0,255,136,0.02),rgba(8,15,12,0))">
+     <div class="max-w-3xl mx-auto">
+      <div class="text-center mb-16">
+       <h2 class="fade-up" style="font-family:'Space Mono',monospace;font-size:clamp(1.8rem,4vw,2.8rem);font-weight:700;margin:0 0 16px;color:#fff">Scan Profile</h2>
+       <p class="fade-up-2" style="font-size:1rem;color:rgba(224,240,232,0.6);max-width:500px;margin:0 auto;line-height:1.7">Enter a username or profile link to begin instant AI-powered analysis</p>
+      </div><!-- Input Section -->
+      <div class="fade-up-3" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:20px;padding:40px;margin-bottom:32px">
+       <div style="margin-bottom:24px">
+        <label style="display:block;font-family:'Space Mono',monospace;font-size:0.85rem;color:#00ff88;margin-bottom:10px;letter-spacing:1px">ENTER USERNAME OR PROFILE LINK</label> <input id="profile-input" type="text" placeholder="e.g., @username or https://twitter.com/username" style="width:100%;background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.2);border-radius:12px;padding:16px 20px;color:#e0f0e8;font-size:1rem;outline:none;font-family:'DM Sans',sans-serif;transition:all 0.3s;box-sizing:border-box" onfocus="this.style.borderColor='rgba(0,255,136,0.4)';this.style.boxShadow='0 0 20px rgba(0,255,136,0.1)'" onblur="this.style.borderColor='rgba(0,255,136,0.2)';this.style.boxShadow='none'">
+       </div><button onclick="analyzeProfile()" id="analyze-btn" class="pulse-glow" style="width:100%;padding:14px;background:#00ff88;color:#080f0c;border:none;border-radius:12px;font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.3s;letter-spacing:0.5px" onmouseenter="this.style.background='#33ffaa'" onmouseleave="this.style.background='#00ff88'">ANALYSE PROFILE</button>
+       <div id="analysis-error" style="margin-top:16px;display:none"></div>
+      </div><!-- Supported Platforms -->
+      <div class="fade-up-4" style="text-align:center">
+       <p style="font-family:'Space Mono',monospace;font-size:0.8rem;color:rgba(224,240,232,0.4);margin:0 0 16px;letter-spacing:1px">SUPPORTED PLATFORMS</p>
+       <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:12px">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 20px;background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.15);border-radius:12px">
+         <i data-lucide="twitter" style="width:20px;height:20px;color:#1DA1F2"></i> <span style="font-size:0.85rem;color:#e0f0e8">Twitter</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 20px;background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.15);border-radius:12px">
+         <i data-lucide="instagram" style="width:20px;height:20px;color:#E1306C"></i> <span style="font-size:0.85rem;color:#e0f0e8">Instagram</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 20px;background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.15);border-radius:12px">
+         <i data-lucide="facebook" style="width:20px;height:20px;color:#1877F2"></i> <span style="font-size:0.85rem;color:#e0f0e8">Facebook</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 20px;background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.15);border-radius:12px">
+         <i data-lucide="linkedin" style="width:20px;height:20px;color:#0A66C2"></i> <span style="font-size:0.85rem;color:#e0f0e8">LinkedIn</span>
+        </div>
+       </div>
+      </div>
+     </div>
+    </section><!-- User Centre Card -->
+    <section class="w-full" style="padding:0 24px 80px">
+     <div class="max-w-3xl mx-auto card-hover" style="background:linear-gradient(135deg,rgba(15,25,20,0.8),rgba(0,255,136,0.05));border:1px solid rgba(0,255,136,0.15);border-radius:20px;padding:40px;display:flex;align-items:center;gap:32px;flex-wrap:wrap">
+      <div style="width:72px;height:72px;border-radius:16px;background:rgba(0,255,136,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0">
+       <i data-lucide="shield-check" style="color:#00ff88;width:36px;height:36px"></i>
+      </div>
+      <div style="flex:1;min-width:200px">
+       <h3 style="font-family:'Space Mono',monospace;font-size:1.25rem;margin:0 0 8px;color:#fff">User Centre</h3>
+       <p style="color:rgba(224,240,232,0.5);font-size:0.9rem;line-height:1.6;margin:0 0 16px">View your protection status, manage scanned profiles, and access threat reports from one secure hub.</p><button onclick="showDashboard()" class="px-5 py-2.5 rounded-lg text-sm font-semibold" style="background:rgba(0,255,136,0.15);color:#00ff88;border:1px solid rgba(0,255,136,0.3);cursor:pointer;transition:all 0.3s" onmouseenter="this.style.background='rgba(0,255,136,0.25)'" onmouseleave="this.style.background='rgba(0,255,136,0.15)'"> Open Dashboard → </button>
+      </div>
+     </div>
+    </section><!-- Footer -->
+    <footer class="w-full" style="padding:30px 24px;border-top:1px solid rgba(0,255,136,0.08);text-align:center">
+     <p style="color:rgba(224,240,232,0.3);font-size:0.8rem;margin:0;font-family:'Space Mono',monospace">© 2025 SatyaScan · Protecting Digital Identities</p>
+    </footer>
+   </div><!-- ANALYSIS LOADING SCREEN -->
+   <div id="analysis-loading-page" class="w-full h-full" style="display:none;background:#080f0c">
+    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;padding:24px">
+     <div style="text-align:center">
+      <div style="margin-bottom:32px">
+       <div style="width:80px;height:80px;margin:0 auto 24px;position:relative">
+        <svg viewbox="0 0 80 80" width="80" height="80"><circle cx="40" cy="40" r="35" fill="none" stroke="rgba(0,255,136,0.1)" stroke-width="2" /> <circle cx="40" cy="40" r="35" fill="none" stroke="#00ff88" stroke-width="2" stroke-dasharray="20 140" opacity="0.8" style="animation:spinLoader 2s linear infinite" />
+        </svg>
+       </div>
+       <h2 style="font-family:'Space Mono',monospace;font-size:1.8rem;color:#fff;margin:0 0 12px">Analyzing Profile…</h2>
+       <p style="color:rgba(224,240,232,0.5);font-size:0.95rem;margin:0 0 24px">AI is scanning the profile for patterns and anomalies</p>
+       <div style="display:flex;flex-direction:column;gap:12px;max-width:300px;margin:0 auto">
+        <div style="display:flex;align-items:center;gap:8px;padding:12px;background:rgba(0,255,136,0.05);border-radius:8px;border:1px solid rgba(0,255,136,0.1)">
+         <div style="width:6px;height:6px;border-radius:50%;background:#00ff88;animation:pulseLoader 2s infinite"></div><span style="font-size:0.85rem;color:rgba(224,240,232,0.7)">Checking username patterns</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:12px;background:rgba(0,255,136,0.05);border-radius:8px;border:1px solid rgba(0,255,136,0.1)">
+         <div style="width:6px;height:6px;border-radius:50%;background:#00ff88;animation:pulseLoader 2s infinite;animation-delay:0.3s"></div><span style="font-size:0.85rem;color:rgba(224,240,232,0.7)">Analyzing behavior patterns</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;padding:12px;background:rgba(0,255,136,0.05);border-radius:8px;border:1px solid rgba(0,255,136,0.1)">
+         <div style="width:6px;height:6px;border-radius:50%;background:#00ff88;animation:pulseLoader 2s infinite;animation-delay:0.6s"></div><span style="font-size:0.85rem;color:rgba(224,240,232,0.7)">Evaluating risk indicators</span>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+    <style>
+     @keyframes spinLoader { to { transform: rotate(360deg); } }
+     @keyframes pulseLoader { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+    </style>
+   </div><!-- RESULTS DASHBOARD -->
+   <div id="results-dashboard-page" class="w-full h-full" style="display:none;background:#080f0c;overflow-y:auto">
+    <nav class="w-full flex items-center justify-between px-6 md:px-12 py-5" style="background:rgba(8,15,12,0.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,255,136,0.08);position:sticky;top:0;z-index:50">
+     <div class="flex items-center gap-3">
+      <div style="width:40px;height:40px">
+       <svg viewbox="0 0 40 40" width="40" height="40">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="#00ff88" stroke-width="2" stroke-dasharray="4 3" opacity="0.6" /><circle cx="20" cy="20" r="12" fill="none" stroke="#00ff88" stroke-width="1.5" opacity="0.3" /><circle cx="20" cy="20" r="5" fill="#00ff88" opacity="0.8" />
+       </svg>
+      </div><span style="font-family:'Space Mono',monospace;font-size:1.25rem;font-weight:700;color:#00ff88;letter-spacing:1px">SatyaScan</span>
+     </div><button onclick="backToScan()" class="px-5 py-2 rounded-lg text-sm font-semibold" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.25);cursor:pointer;transition:all 0.3s" onmouseenter="this.style.background='rgba(0,255,136,0.2)'" onmouseleave="this.style.background='rgba(0,255,136,0.1)'"><span class="flex items-center gap-2"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> New Scan</span></button>
+    </nav>
+    <div class="w-full" style="padding:32px 24px 60px">
+     <div class="max-w-5xl mx-auto"><!-- Profile Header -->
+      <div class="fade-up" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:20px;padding:32px;margin-bottom:24px;display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+       <div style="width:100px;height:100px;border-radius:16px;background:linear-gradient(135deg,#00ff88,#00cc6a);display:flex;align-items:center;justify-content:center;flex-shrink:0"><i data-lucide="user" style="width:50px;height:50px;color:#080f0c"></i>
+       </div>
+       <div style="flex:1;min-width:250px">
+        <h2 style="font-family:'Space Mono',monospace;font-size:1.5rem;color:#fff;margin:0 0 8px">@shadow_analyst</h2>
+        <p style="color:rgba(224,240,232,0.5);font-size:0.9rem;margin:0 0 12px">Account Age: 2 months • Followers: 847 • Following: 156</p>
+        <div style="display:flex;gap:8px">
+         <span style="font-size:0.75rem;padding:4px 10px;border-radius:99px;background:rgba(255,68,68,0.15);color:#ff4444;font-family:'Space Mono',monospace">HIGH RISK</span>
+        </div>
+       </div>
+      </div><!-- Risk Score Card -->
+      <div class="fade-up-2" style="background:rgba(15,25,20,0.6);border:1px solid rgba(255,68,68,0.2);border-radius:20px;padding:32px;margin-bottom:24px;text-align:center">
+       <p style="color:rgba(224,240,232,0.4);font-family:'Space Mono',monospace;font-size:0.8rem;margin:0 0 16px;letter-spacing:1px">RISK ASSESSMENT</p>
+       <div style="position:relative;width:200px;height:200px;margin:0 auto 24px">
+        <svg viewbox="0 0 200 200" width="200" height="200" style="transform:rotate(-90deg)"><circle cx="100" cy="100" r="90" fill="none" stroke="rgba(0,255,136,0.1)" stroke-width="12" /> <circle cx="100" cy="100" r="90" fill="none" stroke="#ff4444" stroke-width="12" stroke-dasharray="283 565" opacity="0.8" />
+        </svg>
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center">
+         <div style="font-family:'Space Mono',monospace;font-size:2.5rem;font-weight:700;color:#ff4444">
+          87%
+         </div>
+         <div style="font-size:0.85rem;color:rgba(224,240,232,0.5)">
+          RISK SCORE
+         </div>
+        </div>
+       </div>
+       <p style="color:rgba(224,240,232,0.6);font-size:0.95rem;margin:0">This profile exhibits multiple fake indicators. Immediate caution recommended.</p>
+      </div><!-- Fake Profile Detection -->
+      <div class="fade-up-3" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:20px;padding:32px;margin-bottom:24px">
+       <h3 style="font-family:'Space Mono',monospace;font-size:1.1rem;color:#fff;margin:0 0 16px"><i data-lucide="alert-circle" style="width:16px;height:16px;display:inline;vertical-align:-2px;color:#ff4444;margin-right:8px"></i>Fake Profile Indicators</h3>
+       <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.15)"><span style="font-size:0.9rem;color:#e0f0e8">Suspicious Username Pattern</span> <i data-lucide="check" style="width:20px;height:20px;color:#ff4444"></i>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;background:rgba(255,170,0,0.05);border:1px solid rgba(255,170,0,0.15)"><span style="font-size:0.9rem;color:#e0f0e8">Incomplete Bio</span> <i data-lucide="alert-triangle" style="width:20px;height:20px;color:#ffaa00"></i>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;background:rgba(255,170,0,0.05);border:1px solid rgba(255,170,0,0.15)"><span style="font-size:0.9rem;color:#e0f0e8">Abnormal Followers Ratio</span> <i data-lucide="alert-triangle" style="width:20px;height:20px;color:#ffaa00"></i>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.15)"><span style="font-size:0.9rem;color:#e0f0e8">No Profile History Found</span> <i data-lucide="check" style="width:20px;height:20px;color:#ff4444"></i>
+        </div>
+       </div>
+      </div><!-- Behavior Analysis -->
+      <div class="fade-up-4" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:20px;padding:32px">
+       <h3 style="font-family:'Space Mono',monospace;font-size:1.1rem;color:#fff;margin:0 0 24px"><i data-lucide="activity" style="width:16px;height:16px;display:inline;vertical-align:-2px;color:#00ff88;margin-right:8px"></i>Behavior Analysis</h3>
+       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div style="background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.1);border-radius:12px;padding:16px;text-align:center">
+         <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:rgba(224,240,232,0.4);margin-bottom:8px">
+          MESSAGES/DAY
+         </div>
+         <div style="font-size:1.8rem;font-weight:700;color:#00ff88;margin-bottom:8px">
+          23
+         </div>
+         <div style="height:40px;display:flex;align-items:flex-end;justify-content:space-around;gap:2px">
+          <div style="width:4px;height:10px;background:rgba(0,255,136,0.4)"></div>
+          <div style="width:4px;height:20px;background:rgba(0,255,136,0.6)"></div>
+          <div style="width:4px;height:8px;background:rgba(0,255,136,0.4)"></div>
+          <div style="width:4px;height:25px;background:rgba(0,255,136,0.8)"></div>
+          <div style="width:4px;height:15px;background:rgba(0,255,136,0.5)"></div>
+         </div>
+        </div>
+        <div style="background:rgba(255,170,0,0.05);border:1px solid rgba(255,170,0,0.1);border-radius:12px;padding:16px;text-align:center">
+         <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:rgba(224,240,232,0.4);margin-bottom:8px">
+          ACTIVE TIME
+         </div>
+         <div style="font-size:1.8rem;font-weight:700;color:#ffaa00;margin-bottom:8px">
+          3-9 PM
+         </div>
+         <div style="height:40px;display:flex;align-items:flex-end;justify-content:space-around;gap:2px">
+          <div style="width:4px;height:5px;background:rgba(255,170,0,0.4)"></div>
+          <div style="width:4px;height:3px;background:rgba(255,170,0,0.3)"></div>
+          <div style="width:4px;height:30px;background:rgba(255,170,0,0.8)"></div>
+          <div style="width:4px;height:28px;background:rgba(255,170,0,0.8)"></div>
+          <div style="width:4px;height:8px;background:rgba(255,170,0,0.4)"></div>
+         </div>
+        </div>
+        <div style="background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.1);border-radius:12px;padding:16px;text-align:center">
+         <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:rgba(224,240,232,0.4);margin-bottom:8px">
+          FOLLOW SPIKES
+         </div>
+         <div style="font-size:1.8rem;font-weight:700;color:#ff4444;margin-bottom:8px">
+          47
+         </div>
+         <div style="height:40px;display:flex;align-items:flex-end;justify-content:space-around;gap:2px">
+          <div style="width:4px;height:8px;background:rgba(255,68,68,0.4)"></div>
+          <div style="width:4px;height:18px;background:rgba(255,68,68,0.6)"></div>
+          <div style="width:4px;height:35px;background:rgba(255,68,68,0.9)"></div>
+          <div style="width:4px;height:20px;background:rgba(255,68,68,0.6)"></div>
+          <div style="width:4px;height:6px;background:rgba(255,68,68,0.3)"></div>
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div><!-- ALERT SYSTEM PAGE -->
+   <div id="alert-system-page" class="w-full h-full" style="display:none;background:#080f0c;overflow-y:auto">
+    <nav class="w-full flex items-center justify-between px-6 md:px-12 py-5" style="background:rgba(8,15,12,0.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,255,136,0.08);position:sticky;top:0;z-index:50">
+     <div class="flex items-center gap-3">
+      <div style="width:40px;height:40px">
+       <svg viewbox="0 0 40 40" width="40" height="40">
+        <circle cx="20" cy="20" r="18" fill="none" stroke="#ff4444" stroke-width="2" opacity="0.6" /><circle cx="20" cy="20" r="12" fill="none" stroke="#ff4444" stroke-width="1.5" opacity="0.3" /><circle cx="20" cy="20" r="5" fill="#ff4444" opacity="0.8" />
+       </svg>
+      </div><span style="font-family:'Space Mono',monospace;font-size:1.25rem;font-weight:700;color:#ff4444;letter-spacing:1px">SatyaScan Alert</span>
+     </div><button onclick="dismissAlert()" class="px-5 py-2 rounded-lg text-sm font-semibold" style="background:rgba(255,68,68,0.1);color:#ff4444;border:1px solid rgba(255,68,68,0.25);cursor:pointer;transition:all 0.3s" onmouseenter="this.style.background='rgba(255,68,68,0.2)'" onmouseleave="this.style.background='rgba(255,68,68,0.1)'">Dismiss</button>
+    </nav>
+    <div class="w-full" style="padding:32px 24px 60px">
+     <div class="max-w-3xl mx-auto">
+      <div class="fade-up" style="text-align:center;margin-bottom:40px">
+       <div style="margin-bottom:24px"><i data-lucide="alert-octagon" style="width:80px;height:80px;color:#ff4444;margin:0 auto;display:block"></i>
+       </div>
+       <h1 style="font-family:'Space Mono',monospace;font-size:clamp(1.8rem,5vw,2.8rem);font-weight:700;color:#ff4444;margin:0 0 16px">⚠️ Suspicious Behavior Detected</h1>
+       <p style="font-size:1.2rem;color:#fff;margin:0 0 8px">🚨 HIGH RISK PROFILE</p>
+       <p style="color:rgba(224,240,232,0.6);font-size:1rem;max-width:500px;margin:0 auto;line-height:1.7">This profile has been flagged for multiple suspicious activities and behavioral anomalies.</p>
+      </div>
+      <div class="fade-up-2" style="background:linear-gradient(135deg,rgba(255,68,68,0.1),rgba(255,170,0,0.05));border:2px solid #ff4444;border-radius:20px;padding:32px;margin-bottom:24px">
+       <h2 style="font-family:'Space Mono',monospace;font-size:1.3rem;color:#ff4444;margin:0 0 20px"><i data-lucide="zap" style="width:20px;height:20px;display:inline;vertical-align:-3px;margin-right:8px"></i>Trigger Reasons</h2>
+       <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:12px;padding:12px;background:rgba(255,68,68,0.05);border-radius:8px"><i data-lucide="chevron-right" style="width:16px;height:16px;color:#ff4444;flex-shrink:0;margin-top:2px"></i> <span style="font-size:0.9rem;color:#e0f0e8">Risk Score exceeds 70% threshold (Current: 87%)</span>
+        </div>
+        <div style="display:flex;gap:12px;padding:12px;background:rgba(255,68,68,0.05);border-radius:8px"><i data-lucide="chevron-right" style="width:16px;height:16px;color:#ff4444;flex-shrink:0;margin-top:2px"></i> <span style="font-size:0.9rem;color:#e0f0e8">Detected rapid follow/unfollow cycling patterns</span>
+        </div>
+        <div style="display:flex;gap:12px;padding:12px;background:rgba(255,68,68,0.05);border-radius:8px"><i data-lucide="chevron-right" style="width:16px;height:16px;color:#ff4444;flex-shrink:0;margin-top:2px"></i> <span style="font-size:0.9rem;color:#e0f0e8">Account creation date within suspicious timeframe</span>
+        </div>
+        <div style="display:flex;gap:12px;padding:12px;background:rgba(255,68,68,0.05);border-radius:8px"><i data-lucide="chevron-right" style="width:16px;height:16px;color:#ff4444;flex-shrink:0;margin-top:2px"></i> <span style="font-size:0.9rem;color:#e0f0e8">Behavioral anomalies match known stalker patterns</span>
+        </div>
+       </div>
+      </div>
+      <div class="fade-up-3" style="display:grid;grid-cols-1;" gap:16px;margin-bottom:32px"><button onclick="generateReport()" class="px-6 py-3 rounded-xl font-semibold text-base" style="background:#00ff88;color:#080f0c;border:none;cursor:pointer;transition:all 0.3s" onmouseenter="this.style.background='#33ffaa'" onmouseleave="this.style.background='#00ff88'"><i data-lucide="download" style="width:16px;height:16px;display:inline;vertical-align:-2px;margin-right:8px"></i>Generate Report</button> <button onclick="blockProfile()" class="px-6 py-3 rounded-xl font-semibold text-base" style="background:rgba(255,68,68,0.2);color:#ff4444;border:1px solid #ff4444;cursor:pointer;transition:all 0.3s" onmouseenter="this.style.background='rgba(255,68,68,0.3)'" onmouseleave="this.style.background='rgba(255,68,68,0.2)'"><i data-lucide="shield-x" style="width:16px;height:16px;display:inline;vertical-align:-2px;margin-right:8px"></i>Block Profile</button>
+      </div>
+      <div class="fade-up-4" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:16px;padding:24px;text-align:center">
+       <p style="color:rgba(224,240,232,0.5);font-size:0.9rem;margin:0"><i data-lucide="info" style="width:14px;height:14px;display:inline;vertical-align:-2px;margin-right:6px"></i>Need help? Contact our support team for immediate assistance.</p>
+      </div>
+     </div>
+    </div>
+   </div>
+   <nav class="w-full flex items-center justify-between px-6 md:px-12 py-5" style="background:rgba(8,15,12,0.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,255,136,0.08);position:sticky;top:0;z-index:50">
+    <div class="flex items-center gap-3">
+     <div style="width:40px;height:40px">
+      <svg viewbox="0 0 40 40" width="40" height="40"><circle cx="20" cy="20" r="18" fill="none" stroke="#00ff88" stroke-width="2" stroke-dasharray="4 3" opacity="0.6" /><circle cx="20" cy="20" r="12" fill="none" stroke="#00ff88" stroke-width="1.5" opacity="0.3" /><circle cx="20" cy="20" r="5" fill="#00ff88" opacity="0.8" />
+      </svg>
+     </div><span style="font-family:'Space Mono',monospace;font-size:1.25rem;font-weight:700;color:#00ff88;letter-spacing:1px">SatyaScan</span>
+    </div><button onclick="showLanding()" class="px-5 py-2 rounded-lg text-sm font-semibold" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.25);cursor:pointer;transition:all 0.3s" onmouseenter="this.style.background='rgba(0,255,136,0.2)'" onmouseleave="this.style.background='rgba(0,255,136,0.1)'"> <span class="flex items-center gap-2"><i data-lucide="arrow-left" style="width:16px;height:16px"></i> Back</span> </button>
+   </nav>
+   <div class="w-full" style="padding:40px 24px 60px">
+    <div class="max-w-3xl mx-auto">
+     <div class="fade-up" style="text-align:center;margin-bottom:60px">
+      <div style="display:inline-block;margin-bottom:20px"><span style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);padding:8px 20px;border-radius:99px;font-size:0.85rem;color:#00ff88;font-family:'Space Mono',monospace;letter-spacing:1px;display:inline-block"><i data-lucide="star" style="width:14px;height:14px;display:inline;vertical-align:-2px;margin-right:6px"></i>FINAL IMPACT</span>
+      </div>
+      <h1 id="impact-title" style="font-family:'Space Mono',monospace;font-size:clamp(2.5rem,8vw,4rem);font-weight:700;line-height:1.2;margin:0 0 24px;color:#fff">Why SatyaScan?</h1>
+      <p style="font-size:1.1rem;color:rgba(224,240,232,0.5);max-width:500px;margin:0 auto;line-height:1.6">Your complete defense system against digital threats and inauthentic profiles</p>
+     </div>
+     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+      <div class="fade-up-2 card-hover" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:16px;padding:32px;text-align:center">
+       <div style="width:64px;height:64px;border-radius:14px;background:rgba(0,255,136,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;border:1px solid rgba(0,255,136,0.2)"><i data-lucide="zap" style="width:32px;height:32px;color:#00ff88"></i>
+       </div>
+       <h3 style="font-family:'Space Mono',monospace;font-size:1.2rem;color:#fff;margin:0 0 12px;font-weight:700">Real-Time Detection</h3>
+       <p style="color:rgba(224,240,232,0.6);font-size:0.9rem;line-height:1.6;margin:0 0 16px">Instant analysis within seconds. Know immediately if a profile is legitimate or fake.</p>
+       <div style="padding-top:16px;border-top:1px solid rgba(0,255,136,0.1)">
+        <div style="font-size:2rem;font-weight:700;color:#00ff88;margin-bottom:4px">
+         2.84s
+        </div>
+        <div style="font-size:0.75rem;color:rgba(224,240,232,0.4);font-family:'Space Mono',monospace">
+         Average scan
+        </div>
+       </div>
+      </div>
+      <div class="fade-up-3 card-hover" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:16px;padding:32px;text-align:center">
+       <div style="width:64px;height:64px;border-radius:14px;background:rgba(0,255,136,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;border:1px solid rgba(0,255,136,0.2)"><i data-lucide="cpu" style="width:32px;height:32px;color:#00ff88"></i>
+       </div>
+       <h3 style="font-family:'Space Mono',monospace;font-size:1.2rem;color:#fff;margin:0 0 12px;font-weight:700">AI-Powered Analysis</h3>
+       <p style="color:rgba(224,240,232,0.6);font-size:0.9rem;line-height:1.6;margin:0 0 16px">Machine learning that detects sophisticated fake profiles and emerging threats.</p>
+       <div style="padding-top:16px;border-top:1px solid rgba(0,255,136,0.1)">
+        <div style="font-size:2rem;font-weight:700;color:#00ff88;margin-bottom:4px">
+         94%
+        </div>
+        <div style="font-size:0.75rem;color:rgba(224,240,232,0.4);font-family:'Space Mono',monospace">
+         Accuracy
+        </div>
+       </div>
+      </div>
+      <div class="fade-up-4 card-hover" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:16px;padding:32px;text-align:center">
+       <div style="width:64px;height:64px;border-radius:14px;background:rgba(0,255,136,0.1);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;border:1px solid rgba(0,255,136,0.2)"><i data-lucide="shield-check" style="width:32px;height:32px;color:#00ff88"></i>
+       </div>
+       <h3 style="font-family:'Space Mono',monospace;font-size:1.2rem;color:#fff;margin:0 0 12px;font-weight:700">Prevents Fraud</h3>
+       <p style="color:rgba(224,240,232,0.6);font-size:0.9rem;line-height:1.6;margin:0 0 16px">Stop threats before damage happens. Protect your identity, finances, and reputation.</p>
+       <div style="padding-top:16px;border-top:1px solid rgba(0,255,136,0.1)">
+        <div style="font-size:2rem;font-weight:700;color:#00ff88;margin-bottom:4px">
+         24/7
+        </div>
+        <div style="font-size:0.75rem;color:rgba(224,240,232,0.4);font-family:'Space Mono',monospace">
+         Monitoring
+        </div>
+       </div>
+      </div>
+     </div>
+     <div class="fade-up" style="background:linear-gradient(135deg,rgba(0,255,136,0.08),rgba(0,255,136,0.03));border:2px solid rgba(0,255,136,0.2);border-radius:20px;padding:40px;text-align:center">
+      <h2 style="font-family:'Space Mono',monospace;font-size:1.5rem;color:#fff;margin:0 0 16px">Ready to Protect Your Digital Identity?</h2>
+      <p style="color:rgba(224,240,232,0.6);font-size:1rem;margin:0 0 32px">Join thousands of users who trust SatyaScan</p>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;justify-content:center"><button onclick="showDashboard()" class="pulse-glow" style="padding:14px 32px;background:#00ff88;color:#080f0c;border:none;border-radius:12px;font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;cursor:pointer" onmouseenter="this.style.background='#33ffaa'" onmouseleave="this.style.background='#00ff88'"><i data-lucide="play" style="width:16px;height:16px;display:inline;vertical-align:-2px;margin-right:8px"></i>START SCANNING</button> <button onclick="showLanding()" style="padding:14px 32px;background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.3);border-radius:12px;font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;cursor:pointer" onmouseenter="this.style.background='rgba(0,255,136,0.15)'" onmouseleave="this.style.background='rgba(0,255,136,0.1)'"><i data-lucide="arrow-left" style="width:16px;height:16px;display:inline;vertical-align:-2px;margin-right:8px"></i>BACK</button>
+      </div>
+     </div>
+     <div class="fade-up-2" style="margin-top:40px;text-align:center">
+      <p style="color:rgba(224,240,232,0.3);font-size:0.8rem;margin-bottom:16px;font-family:'Space Mono',monospace">TRUSTED BY</p>
+      <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:24px;opacity:0.7">
+       <div style="display:flex;align-items:center;gap:8px"><i data-lucide="check-circle" style="width:16px;height:16px;color:#00ff88"></i> <span style="font-size:0.85rem;color:rgba(224,240,232,0.5)">500K+ Users</span>
+       </div>
+       <div style="display:flex;align-items:center;gap:8px"><i data-lucide="check-circle" style="width:16px;height:16px;color:#00ff88"></i> <span style="font-size:0.85rem;color:rgba(224,240,232,0.5)">47 Countries</span>
+       </div>
+       <div style="display:flex;align-items:center;gap:8px"><i data-lucide="check-circle" style="width:16px;height:16px;color:#00ff88"></i> <span style="font-size:0.85rem;color:rgba(224,240,232,0.5)">99.9% Uptime</span>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- FINAL IMPACT SLIDE -->
+  <div class="w-full" style="padding:32px 24px 60px">
+   <div class="max-w-5xl mx-auto">
+    <h2 style="font-family:'Space Mono',monospace;font-size:1.5rem;color:#fff;margin:0 0 8px">Dashboard</h2>
+    <p style="color:rgba(224,240,232,0.4);font-size:0.9rem;margin:0 0 32px">Your protection overview</p><!-- Stats Row -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+     <div class="dash-card text-center">
+      <div style="color:rgba(224,240,232,0.4);font-size:0.75rem;margin-bottom:8px;font-family:'Space Mono',monospace">
+       SCANNED
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:1.75rem;font-weight:700;color:#00ff88">
+       1,247
+      </div>
+     </div>
+     <div class="dash-card text-center">
+      <div style="color:rgba(224,240,232,0.4);font-size:0.75rem;margin-bottom:8px;font-family:'Space Mono',monospace">
+       THREATS
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:1.75rem;font-weight:700;color:#ff4444">
+       23
+      </div>
+     </div>
+     <div class="dash-card text-center">
+      <div style="color:rgba(224,240,232,0.4);font-size:0.75rem;margin-bottom:8px;font-family:'Space Mono',monospace">
+       SAFE
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:1.75rem;font-weight:700;color:#00ff88">
+       98.2%
+      </div>
+     </div>
+     <div class="dash-card text-center">
+      <div style="color:rgba(224,240,232,0.4);font-size:0.75rem;margin-bottom:8px;font-family:'Space Mono',monospace">
+       ALERTS
+      </div>
+      <div style="font-family:'Space Mono',monospace;font-size:1.75rem;font-weight:700;color:#ffaa00">
+       5
+      </div>
+     </div>
+    </div><!-- Scan Input -->
+    <div class="dash-card mb-6">
+     <div style="font-family:'Space Mono',monospace;font-size:0.9rem;color:#fff;margin-bottom:12px"><i data-lucide="search" style="width:16px;height:16px;display:inline;vertical-align:-3px;color:#00ff88;margin-right:8px"></i>Quick Scan
+     </div>
+     <div class="flex gap-3 flex-wrap">
+      <input id="scan-input" type="text" placeholder="Enter profile URL or username..." style="flex:1;min-width:200px;background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.15);border-radius:8px;padding:10px 16px;color:#e0f0e8;font-size:0.9rem;outline:none;font-family:'DM Sans',sans-serif" onfocus="this.style.borderColor='rgba(0,255,136,0.4)'" onblur="this.style.borderColor='rgba(0,255,136,0.15)'"> <button onclick="runScan()" id="scan-btn" class="px-6 py-2.5 rounded-lg font-semibold text-sm" style="background:#00ff88;color:#080f0c;border:none;cursor:pointer;white-space:nowrap;transition:all 0.3s" onmouseenter="this.style.background='#33ffaa'" onmouseleave="this.style.background='#00ff88'">Scan Now</button>
+     </div>
+     <div id="scan-result" style="margin-top:12px;display:none"></div>
+    </div><!-- Recent Activity -->
+    <div class="dash-card">
+     <div style="font-family:'Space Mono',monospace;font-size:0.9rem;color:#fff;margin-bottom:16px"><i data-lucide="activity" style="width:16px;height:16px;display:inline;vertical-align:-3px;color:#00ff88;margin-right:8px"></i>Recent Activity
+     </div>
+     <div class="flex flex-col gap-3" id="activity-list">
+      <div class="flex items-center justify-between p-3 rounded-lg" style="background:rgba(0,255,136,0.03);border:1px solid rgba(0,255,136,0.06)">
+       <div class="flex items-center gap-3">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,68,68,0.15);display:flex;align-items:center;justify-content:center"><i data-lucide="alert-triangle" style="width:16px;height:16px;color:#ff4444"></i>
+        </div>
+        <div>
+         <div style="font-size:0.85rem;color:#fff">
+          @ghost_user_2847
+         </div>
+         <div style="font-size:0.75rem;color:rgba(224,240,232,0.4)">
+          Fake profile detected · 2h ago
+         </div>
+        </div>
+       </div><span style="font-size:0.7rem;padding:4px 10px;border-radius:99px;background:rgba(255,68,68,0.15);color:#ff4444;font-family:'Space Mono',monospace">THREAT</span>
+      </div>
+      <div class="flex items-center justify-between p-3 rounded-lg" style="background:rgba(0,255,136,0.03);border:1px solid rgba(0,255,136,0.06)">
+       <div class="flex items-center gap-3">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(255,170,0,0.15);display:flex;align-items:center;justify-content:center"><i data-lucide="eye" style="width:16px;height:16px;color:#ffaa00"></i>
+        </div>
+        <div>
+         <div style="font-size:0.85rem;color:#fff">
+          @anon_watcher99
+         </div>
+         <div style="font-size:0.75rem;color:rgba(224,240,232,0.4)">
+          Suspicious activity · 5h ago
+         </div>
+        </div>
+       </div><span style="font-size:0.7rem;padding:4px 10px;border-radius:99px;background:rgba(255,170,0,0.15);color:#ffaa00;font-family:'Space Mono',monospace">WARNING</span>
+      </div>
+      <div class="flex items-center justify-between p-3 rounded-lg" style="background:rgba(0,255,136,0.03);border:1px solid rgba(0,255,136,0.06)">
+       <div class="flex items-center gap-3">
+        <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,255,136,0.15);display:flex;align-items:center;justify-content:center"><i data-lucide="check-circle" style="width:16px;height:16px;color:#00ff88"></i>
+        </div>
+        <div>
+         <div style="font-size:0.85rem;color:#fff">
+          @real_sarah_m
+         </div>
+         <div style="font-size:0.75rem;color:rgba(224,240,232,0.4)">
+          Verified authentic · 1d ago
+         </div>
+        </div>
+       </div><span style="font-size:0.7rem;padding:4px 10px;border-radius:99px;background:rgba(0,255,136,0.15);color:#00ff88;font-family:'Space Mono',monospace">SAFE</span>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- REPORT PAGE -->
+  <div id="report-page" class="w-full h-full" style="display:none;background:#080f0c;overflow-y:auto">
+   <nav class="w-full flex items-center justify-between px-6 md:px-12 py-5" style="background:rgba(8,15,12,0.85);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,255,136,0.08);position:sticky;top:0;z-index:50">
+    <div class="flex items-center gap-3">
+     <div style="width:40px;height:40px">
+      <svg viewbox="0 0 40 40" width="40" height="40">
+       <circle cx="20" cy="20" r="18" fill="none" stroke="#00ff88" stroke-width="2" stroke-dasharray="4 3" opacity="0.6" /><circle cx="20" cy="20" r="12" fill="none" stroke="#00ff88" stroke-width="1.5" opacity="0.3" /><circle cx="20" cy="20" r="5" fill="#00ff88" opacity="0.8" />
+      </svg>
+     </div><span style="font-family:'Space Mono',monospace;font-size:1.25rem;font-weight:700;color:#00ff88;letter-spacing:1px">SatyaScan</span>
+    </div>
+    <div style="display:flex;gap:12px"><button onclick="downloadReport()" class="px-5 py-2 rounded-lg text-sm font-semibold" style="background:rgba(0,255,136,0.15);color:#00ff88;border:1px solid rgba(0,255,136,0.3);cursor:pointer;transition:all 0.3s" onmouseenter="this.style.background='rgba(0,255,136,0.25)'" onmouseleave="this.style.background='rgba(0,255,136,0.15)'"><i data-lucide="download" style="width:16px;height:16px;display:inline;vertical-align:-2px;margin-right:6px"></i>Download PDF</button> <button onclick="backToResults()" class="px-5 py-2 rounded-lg text-sm font-semibold" style="background:rgba(0,255,136,0.1);color:#00ff88;border:1px solid rgba(0,255,136,0.25);cursor:pointer;transition:all 0.3s" onmouseenter="this.style.background='rgba(0,255,136,0.2)'" onmouseleave="this.style.background='rgba(0,255,136,0.1)'"><i data-lucide="arrow-left" style="width:16px;height:16px;display:inline;vertical-align:-2px;margin-right:6px"></i>Back</button>
+    </div>
+   </nav>
+   <div class="w-full" style="padding:40px 24px 60px">
+    <div class="max-w-4xl mx-auto"><!-- Report Header -->
+     <div class="fade-up" style="margin-bottom:40px;border-bottom:2px solid rgba(0,255,136,0.1);padding-bottom:32px">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+       <div style="width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,#00ff88,#00cc6a);display:flex;align-items:center;justify-content:center"><i data-lucide="file-text" style="width:32px;height:32px;color:#080f0c"></i>
+       </div>
+       <div>
+        <h1 style="font-family:'Space Mono',monospace;font-size:2rem;color:#fff;margin:0 0 4px">SatyaScan Report</h1>
+        <p style="color:rgba(224,240,232,0.4);font-size:0.85rem;margin:0;font-family:'Space Mono',monospace">Profile Analysis Report · Generated 2024-01-15 10:42 AM</p>
+       </div>
+      </div>
+     </div><!-- Profile Overview -->
+     <div class="fade-up-2" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:16px;padding:28px;margin-bottom:24px">
+      <h2 style="font-family:'Space Mono',monospace;font-size:1rem;color:#00ff88;margin:0 0 20px;letter-spacing:1px;text-transform:uppercase">Profile Overview</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+       <div>
+        <p style="color:rgba(224,240,232,0.4);font-size:0.8rem;margin:0 0 6px;font-family:'Space Mono',monospace">USERNAME</p>
+        <p style="font-size:0.95rem;color:#fff;margin:0">@shadow_analyst</p>
+       </div>
+       <div>
+        <p style="color:rgba(224,240,232,0.4);font-size:0.8rem;margin:0 0 6px;font-family:'Space Mono',monospace">PLATFORM</p>
+        <p style="font-size:0.95rem;color:#fff;margin:0">Twitter / X</p>
+       </div>
+       <div>
+        <p style="color:rgba(224,240,232,0.4);font-size:0.8rem;margin:0 0 6px;font-family:'Space Mono',monospace">ACCOUNT AGE</p>
+        <p style="font-size:0.95rem;color:#fff;margin:0">2 months</p>
+       </div>
+       <div>
+        <p style="color:rgba(224,240,232,0.4);font-size:0.8rem;margin:0 0 6px;font-family:'Space Mono',monospace">FOLLOWERS</p>
+        <p style="font-size:0.95rem;color:#fff;margin:0">847</p>
+       </div>
+       <div>
+        <p style="color:rgba(224,240,232,0.4);font-size:0.8rem;margin:0 0 6px;font-family:'Space Mono',monospace">ANALYSIS DATE</p>
+        <p style="font-size:0.95rem;color:#fff;margin:0">2024-01-15</p>
+       </div>
+       <div>
+        <p style="color:rgba(224,240,232,0.4);font-size:0.8rem;margin:0 0 6px;font-family:'Space Mono',monospace">SCAN DURATION</p>
+        <p style="font-size:0.95rem;color:#fff;margin:0">2.84 seconds</p>
+       </div>
+      </div>
+     </div><!-- Summary Statistics -->
+     <div class="fade-up-3" style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:16px;padding:28px;margin-bottom:24px">
+      <h2 style="font-family:'Space Mono',monospace;font-size:1rem;color:#00ff88;margin:0 0 20px;letter-spacing:1px;text-transform:uppercase">Summary Statistics</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+       <div style="background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.1);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:rgba(224,240,232,0.4);margin-bottom:8px">
+         RISK SCORE
+        </div>
+        <div style="font-size:1.5rem;font-weight:700;color:#ff4444">
+         87%
+        </div>
+        <div style="font-size:0.7rem;color:#ff4444;margin-top:4px">
+         HIGH RISK
+        </div>
+       </div>
+       <div style="background:rgba(255,68,68,0.05);border:1px solid rgba(255,68,68,0.1);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:rgba(224,240,232,0.4);margin-bottom:8px">
+         FAKE INDICATORS
+        </div>
+        <div style="font-size:1.5rem;font-weight:700;color:#ff4444">
+         7
+        </div>
+        <div style="font-size:0.7rem;color:#ff4444;margin-top:4px">
+         DETECTED
+        </div>
+       </div>
+       <div style="background:rgba(255,170,0,0.05);border:1px solid rgba(255,170,0,0.1);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:rgba(224,240,232,0.4);margin-bottom:8px">
+         ANOMALIES
+        </div>
+        <div style="font-size:1.5rem;font-weight:700;color:#ffaa00">
+         12
+        </div>
+        <div style="font-size:0.7rem;color:#ffaa00;margin-top:4px">
+         FOUND
+        </div>
+       </div>
+       <div style="background:rgba(0,255,136,0.05);border:1px solid rgba(0,255,136,0.1);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:rgba(224,240,232,0.4);margin-bottom:8px">
+         CONFIDENCE
+        </div>
+        <div style="font-size:1.5rem;font-weight:700;color:#00ff88">
+         94%
+        </div>
+        <div style="font-size:0.7rem;color:#00ff88;margin-top:4px">
+         ANALYSIS
+        </div>
+       </div>
+      </div>
+     </div><!-- Risk Assessment -->
+     <div class="fade-up-4" style="background:linear-gradient(135deg,rgba(255,68,68,0.1),rgba(255,170,0,0.05));border:2px solid rgba(255,68,68,0.3);border-radius:16px;padding:28px;margin-bottom:24px">
+      <h2 style="font-family:'Space Mono',monospace;font-size:1rem;color:#ff4444;margin:0 0 20px;letter-spacing:1px;text-transform:uppercase">Risk Level Assessment</h2>
+      <div style="margin-bottom:20px">
+       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><span style="color:#fff;font-size:0.9rem">Overall Risk</span> <span style="font-family:'Space Mono',monospace;color:#ff4444;font-weight:700">87%</span>
+       </div>
+       <div style="width:100%;height:8px;background:rgba(0,0,0,0.3);border-radius:99px;overflow:hidden">
+        <div style="width:87%;height:100%;background:linear-gradient(90deg,#ffaa00,#ff4444);border-radius:99px"></div>
+       </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+       <div style="display:flex;gap:8px;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px;border-left:3px solid #ff4444"><i data-lucide="alert-triangle" style="width:16px;height:16px;color:#ff4444;flex-shrink:0;margin-top:2px"></i>
+        <div>
+         <div style="font-size:0.85rem;color:#fff;font-weight:600">
+          Critical Threats
+         </div>
+         <div style="font-size:0.75rem;color:rgba(224,240,232,0.5)">
+          3 high-severity indicators
+         </div>
+        </div>
+       </div>
+       <div style="display:flex;gap:8px;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px;border-left:3px solid #ffaa00"><i data-lucide="alert-circle" style="width:16px;height:16px;color:#ffaa00;flex-shrink:0;margin-top:2px"></i>
+        <div>
+         <div style="font-size:0.85rem;color:#fff;font-weight:600">
+          Warnings
+         </div>
+         <div style="font-size:0.75rem;color:rgba(224,240,232,0.5)">
+          4 moderate-severity flags
+         </div>
+        </div>
+       </div>
+      </div>
+     </div><!-- Key Findings -->
+     <div style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:16px;padding:28px;margin-bottom:24px">
+      <h2 style="font-family:'Space Mono',monospace;font-size:1rem;color:#00ff88;margin:0 0 20px;letter-spacing:1px;text-transform:uppercase">Key Findings</h2>
+      <div style="display:flex;flex-direction:column;gap:12px">
+       <div style="display:flex;gap:12px;padding:14px;background:rgba(255,68,68,0.08);border-radius:8px;border-left:3px solid #ff4444"><i data-lucide="check" style="width:16px;height:16px;color:#ff4444;flex-shrink:0;margin-top:1px"></i>
+        <div>
+         <div style="font-size:0.9rem;color:#fff;font-weight:600">
+          Suspicious Username Pattern
+         </div>
+         <div style="font-size:0.8rem;color:rgba(224,240,232,0.6);margin-top:2px">
+          Username contains sequential numbers and underscore separators commonly used in fake accounts
+         </div>
+        </div>
+       </div>
+       <div style="display:flex;gap:12px;padding:14px;background:rgba(255,170,0,0.08);border-radius:8px;border-left:3px solid #ffaa00"><i data-lucide="alert-triangle" style="width:16px;height:16px;color:#ffaa00;flex-shrink:0;margin-top:1px"></i>
+        <div>
+         <div style="font-size:0.9rem;color:#fff;font-weight:600">
+          Abnormal Follower Ratio
+         </div>
+         <div style="font-size:0.8rem;color:rgba(224,240,232,0.6);margin-top:2px">
+          Following to follower ratio (1:5.4) indicates bot-like behavior or purchased followers
+         </div>
+        </div>
+       </div>
+       <div style="display:flex;gap:12px;padding:14px;background:rgba(255,68,68,0.08);border-radius:8px;border-left:3px solid #ff4444"><i data-lucide="check" style="width:16px;height:16px;color:#ff4444;flex-shrink:0;margin-top:1px"></i>
+        <div>
+         <div style="font-size:0.9rem;color:#fff;font-weight:600">
+          No Historical Data Available
+         </div>
+         <div style="font-size:0.8rem;color:rgba(224,240,232,0.6);margin-top:2px">
+          Profile has been scrubbed or archived. No historical posts found beyond 2 months
+         </div>
+        </div>
+       </div>
+       <div style="display:flex;gap:12px;padding:14px;background:rgba(255,170,0,0.08);border-radius:8px;border-left:3px solid #ffaa00"><i data-lucide="alert-triangle" style="width:16px;height:16px;color:#ffaa00;flex-shrink:0;margin-top:1px"></i>
+        <div>
+         <div style="font-size:0.9rem;color:#fff;font-weight:600">
+          Aggressive Follow Pattern
+         </div>
+         <div style="font-size:0.8rem;color:rgba(224,240,232,0.6);margin-top:2px">
+          Account follows 156 new profiles per day on average - typical stalker behavior
+         </div>
+        </div>
+       </div>
+       <div style="display:flex;gap:12px;padding:14px;background:rgba(255,68,68,0.08);border-radius:8px;border-left:3px solid #ff4444"><i data-lucide="check" style="width:16px;height:16px;color:#ff4444;flex-shrink:0;margin-top:1px"></i>
+        <div>
+         <div style="font-size:0.9rem;color:#fff;font-weight:600">
+          Incomplete Profile Information
+         </div>
+         <div style="font-size:0.8rem;color:rgba(224,240,232,0.6);margin-top:2px">
+          Bio is empty or placeholder text. No website, location, or verifiable contact information
+         </div>
+        </div>
+       </div>
+      </div>
+     </div><!-- AI Insights -->
+     <div style="background:rgba(15,25,20,0.6);border:1px solid rgba(0,255,136,0.15);border-radius:16px;padding:28px;margin-bottom:24px">
+      <h2 style="font-family:'Space Mono',monospace;font-size:1rem;color:#00ff88;margin:0 0 20px;letter-spacing:1px;text-transform:uppercase">AI Insights</h2>
+      <div style="background:rgba(0,255,136,0.05);border-left:3px solid #00ff88;border-radius:8px;padding:16px;margin-bottom:16px">
+       <p style="font-size:0.9rem;color:#e0f0e8;line-height:1.6;margin:0">This profile exhibits characteristics consistent with a coordinated inauthentic behavior network (CIAB). The combination of recent account creation, aggressive following patterns, incomplete information, and abnormal engagement metrics suggests this account may be used for stalking, harassment, or botnet activities.</p>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
+       <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:14px">
+        <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:rgba(224,240,232,0.4);margin-bottom:6px">
+         THREAT TYPE
+        </div>
+        <div style="font-size:0.9rem;color:#fff">
+         Stalking/Harassment
+        </div>
+       </div>
+       <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:14px">
+        <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:rgba(224,240,232,0.4);margin-bottom:6px">
+         LIKELY ORIGIN
+        </div>
+        <div style="font-size:0.9rem;color:#fff">
+         Automated/Bot Network
+        </div>
+       </div>
+       <div style="background:rgba(0,0,0,0.2);border-radius:8px;padding:14px">
+        <div style="font-family:'Space Mono',monospace;font-size:0.75rem;color:rgba(224,240,232,0.4);margin-bottom:6px">
+         PROBABILITY MATCH
+        </div>
+        <div style="font-size:0.9rem;color:#00ff88">
+         94% Confidence
+        </div>
+       </div>
+      </div>
+     </div><!-- Recommendations -->
+     <div style="background:rgba(0,255,136,0.05);border:2px solid rgba(0,255,136,0.25);border-radius:16px;padding:28px;margin-bottom:24px">
+      <h2 style="font-family:'Space Mono',monospace;font-size:1rem;color:#00ff88;margin:0 0 20px;letter-spacing:1px;text-transform:uppercase">Recommendations</h2>
+      <div style="display:flex;flex-direction:column;gap:12px">
+       <div style="display:flex;gap:12px;padding:14px;background:rgba(0,255,136,0.08);border-radius:8px;border-left:3px solid #00ff88"><i data-lucide="shield-check" style="width:16px;height:16px;color:#00ff88;flex-shrink:0;margin-top:1px"></i>
+        <div>
+         <div style="font-size:0.9rem;color:#fff;font-weight:600">
+          Immediate Action: Block This Profile
+         </div>
+         <div style="font-size:0.8rem;color:rgba(224,240,232,0.6);margin-top:2px">
+          Use platform blocking tools to prevent further contact and monitoring
+         </div>
+        </div>
+       </div>
+       <div style="display:flex;gap:12px;padding:14px;background:rgba(0,255,136,0.08);border-radius:8px;border-left:3px solid #00ff88"><i data-lucide="shield-check" style="width:16px;height:16px;color:#00ff88;flex-shrink:0;margin-top:1px"></i>
+        <div>
+         <div style="font-size:0.9rem;color:#fff;font-weight:600">
+          Report to Platform Moderators
+         </div>
+         <div style="font-size:0.8rem;color:rgba(224,240,232,0.6);margin-top:2px">
+          File an abuse report with evidence of coordinated inauthentic behavior
+         </div>
+        </div>
+       </div>
+       <div style="display:flex;gap:12px;padding:14px;background:rgba(0,255,136,0.08);border-radius:8px;border-left:3px solid #00ff88"><i data-lucide="shield-check" style="width:16px;height:16px;color:#00ff88;flex-shrink:0;margin-top:1px"></i>
+        <div>
+         <div style="font-size:0.9rem;color:#fff;font-weight:600">
+          Enable Enhanced Privacy Controls
+         </div>
+         <div style="font-size:0.8rem;color:rgba(224,240,232,0.6);margin-top:2px">
+          Limit follower visibility and enable approval for follow requests
+         </div>
+        </div>
+       </div>
+       <div style="display:flex;gap:12px;padding:14px;background:rgba(0,255,136,0.08);border-radius:8px;border-left:3px solid #00ff88"><i data-lucide="shield-check" style="width:16px;height:16px;color:#00ff88;flex-shrink:0;margin-top:1px"></i>
+        <div>
+         <div style="font-size:0.9rem;color:#fff;font-weight:600">
+          Monitor Cross-Platform Activity
+         </div>
+         <div style="font-size:0.8rem;color:rgba(224,240,232,0.6);margin-top:2px">
+          Run additional scans on other social platforms to detect related accounts
+         </div>
+        </div>
+       </div>
+       <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:12px;padding:14px;background:rgba(0,255,136,0.08);border-radius:8px;border-left:3px solid #00ff88"><i data-lucide="shield-check" style="width:16px;height:16px;color:#00ff88;flex-shrink:0;margin-top:1px"></i>
+         <div>
+          <div style="font-size:0.9rem;color:#fff;font-weight:600">
+           Consider Legal Action
+          </div>
+          <div style="font-size:0.8rem;color:rgba(224,240,232,0.6);margin-top:2px">
+           If harassment persists, document evidence and consult with cybersecurity lawyers
+          </div>
+         </div>
+        </div>
+       </div>
+      </div><!-- Export Options Section -->
+      <div style="background:linear-gradient(135deg,rgba(0,255,136,0.08),rgba(0,255,136,0.03));border:2px solid rgba(0,255,136,0.2);border-radius:16px;padding:32px;margin-bottom:24px">
+       <h2 style="font-family:'Space Mono',monospace;font-size:1rem;color:#00ff88;margin:0 0 24px;letter-spacing:1px;text-transform:uppercase"><i data-lucide="download" style="width:16px;height:16px;display:inline;vertical-align:-2px;margin-right:8px"></i>Export Report</h2>
+       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px">
+        <!-- PDF Export -->
+        <div style="background:rgba(0,0,0,0.2);border:1px solid rgba(0,255,136,0.15);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all 0.3s" onmouseenter="this.style.borderColor='rgba(0,255,136,0.4)';this.style.background='rgba(0,255,136,0.08)'" onmouseleave="this.style.borderColor='rgba(0,255,136,0.15)';this.style.background='rgba(0,0,0,0.2)'">
+         <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,rgba(200,50,50,0.3),rgba(150,30,30,0.2));display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i data-lucide="file-pdf" style="width:28px;height:28px;color:#ff4444"></i>
+         </div>
+         <div style="font-family:'Space Mono',monospace;font-size:0.9rem;color:#fff;margin-bottom:4px;font-weight:600">
+          PDF Report
+         </div>
+         <div style="font-size:0.75rem;color:rgba(224,240,232,0.5)">
+          Full report document
+         </div>
+        </div><!-- CSV Export -->
+        <div style="background:rgba(0,0,0,0.2);border:1px solid rgba(0,255,136,0.15);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all 0.3s" onmouseenter="this.style.borderColor='rgba(0,255,136,0.4)';this.style.background='rgba(0,255,136,0.08)'" onmouseleave="this.style.borderColor='rgba(0,255,136,0.15)';this.style.background='rgba(0,0,0,0.2)'">
+         <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,rgba(100,150,200,0.3),rgba(80,120,180,0.2));display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i data-lucide="table" style="width:28px;height:28px;color:#4a9eff"></i>
+         </div>
+         <div style="font-family:'Space Mono',monospace;font-size:0.9rem;color:#fff;margin-bottom:4px;font-weight:600">
+          CSV Export
+         </div>
+         <div style="font-size:0.75rem;color:rgba(224,240,232,0.5)">
+          Spreadsheet data
+         </div>
+        </div><!-- JSON Export -->
+        <div style="background:rgba(0,0,0,0.2);border:1px solid rgba(0,255,136,0.15);border-radius:12px;padding:20px;text-align:center;cursor:pointer;transition:all 0.3s" onmouseenter="this.style.borderColor='rgba(0,255,136,0.4)';this.style.background='rgba(0,255,136,0.08)'" onmouseleave="this.style.borderColor='rgba(0,255,136,0.15)';this.style.background='rgba(0,0,0,0.2)'">
+         <div style="width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,rgba(200,150,50,0.3),rgba(180,130,30,0.2));display:flex;align-items:center;justify-content:center;margin:0 auto 12px"><i data-lucide="braces" style="width:28px;height:28px;color:#ffcc00"></i>
+         </div>
+         <div style="font-family:'Space Mono',monospace;font-size:0.9rem;color:#fff;margin-bottom:4px;font-weight:600">
+          JSON Export
+         </div>
+         <div style="font-size:0.75rem;color:rgba(224,240,232,0.5)">
+          Raw data format
+         </div>
+        </div>
+       </div><!-- Export Features -->
+       <div style="background:rgba(0,0,0,0.2);border-radius:12px;padding:16px;margin-bottom:24px">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px">
+         <div style="display:flex;align-items:center;gap:8px">
+          <i data-lucide="check-circle" style="width:16px;height:16px;color:#00ff88;flex-shrink:0"></i> <span style="font-size:0.85rem;color:rgba(224,240,232,0.7)">Encrypted exports</span>
+         </div>
+         <div style="display:flex;align-items:center;gap:8px">
+          <i data-lucide="check-circle" style="width:16px;height:16px;color:#00ff88;flex-shrink:0"></i> <span style="font-size:0.85rem;color:rgba(224,240,232,0.7)">Timestamped files</span>
+         </div>
+         <div style="display:flex;align-items:center;gap:8px">
+          <i data-lucide="check-circle" style="width:16px;height:16px;color:#00ff88;flex-shrink:0"></i> <span style="font-size:0.85rem;color:rgba(224,240,232,0.7)">Audit trail ready</span>
+         </div>
+         <div style="display:flex;align-items:center;gap:8px">
+          <i data-lucide="check-circle" style="width:16px;height:16px;color:#00ff88;flex-shrink:0"></i> <span style="font-size:0.85rem;color:rgba(224,240,232,0.7)">GDPR compliant</span>
+         </div>
+        </div>
+       </div><!-- Primary CTA --> <button onclick="generateAndDownload()" class="pulse-glow" style="width:100%;padding:16px;background:#00ff88;color:#080f0c;border:none;border-radius:12px;font-family:'Space Mono',monospace;font-size:1rem;font-weight:700;cursor:pointer;transition:all 0.3s;letter-spacing:0.5px;display:flex;align-items:center;justify-content:center;gap:8px" onmouseenter="this.style.background='#33ffaa'" onmouseleave="this.style.background='#00ff88'"><i data-lucide="download" style="width:18px;height:18px"></i>GENERATE &amp; DOWNLOAD</button>
+       <div id="export-status" style="margin-top:16px;display:none"></div>
+      </div>
+      <div style="text-align:center;padding:20px;border-top:1px solid rgba(0,255,136,0.1)">
+       <p style="color:rgba(224,240,232,0.4);font-size:0.8rem;margin:0;font-family:'Space Mono',monospace">This report is confidential and for authorized use only. © 2025 SatyaScan</p>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+  // Navigation
+  function showDashboard() {
+    document.getElementById('landing-page').style.display = 'none';
+    document.getElementById('impact-page').style.display = 'none';
+    document.getElementById('dashboard-page').style.display = 'block';
+    document.getElementById('app-wrapper').scrollTop = 0;
+    lucide.createIcons();
+  }
+  function showLanding() {
+    document.getElementById('dashboard-page').style.display = 'none';
+    document.getElementById('impact-page').style.display = 'none';
+    document.getElementById('landing-page').style.display = 'block';
+    document.getElementById('app-wrapper').scrollTop = 0;
+    lucide.createIcons();
+  }
+  function showImpactSlide() {
+    document.getElementById('landing-page').style.display = 'none';
+    document.getElementById('dashboard-page').style.display = 'none';
+    document.getElementById('impact-page').style.display = 'block';
+    document.getElementById('app-wrapper').scrollTop = 0;
+    lucide.createIcons();
+  }
+  function backToScan() {
+    document.getElementById('results-dashboard-page').style.display = 'none';
+    document.getElementById('landing-page').style.display = 'block';
+    document.getElementById('app-wrapper').scrollTop = 0;
+  }
+  function backToResults() {
+    document.getElementById('report-page').style.display = 'none';
+    document.getElementById('results-dashboard-page').style.display = 'block';
+    document.getElementById('app-wrapper').scrollTop = 0;
+    lucide.createIcons();
+  }
+  function downloadReport() {
+    const timestamp = new Date().toLocaleString();
+    alert('Report download initiated:\n\nSatyaScan_Report_@shadow_analyst_' + new Date().getTime() + '.pdf\n\nGenerated: ' + timestamp);
+  }
+  function generateAndDownload() {
+    const statusDiv = document.getElementById('export-status');
+    const btn = event.target.closest('button');
+    btn.disabled = true;
+    btn.textContent = 'Generating...';
+    statusDiv.style.display = 'block';
+    statusDiv.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:12px;border-radius:8px;background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2)"><div style="width:14px;height:14px;border:2px solid #00ff88;border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite"></div><span style="font-size:0.85rem;color:#00ff88">Preparing exports...</span></div>';
+    const style = document.createElement('style');
+    style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+    setTimeout(() => {
+      const timestamp = new Date();
+      const dateStr = timestamp.toISOString().split('T')[0];
+      const timeStr = timestamp.toLocaleTimeString().replace(/:/g, '-');
+      const reportData = {
+        profile: '@shadow_analyst',
+        platform: 'Twitter / X',
+        riskScore: 87,
+        timestamp: timestamp.toISOString(),
+        findings: ['Suspicious Username Pattern', 'Abnormal Follower Ratio', 'No Historical Data', 'Aggressive Follow Pattern', 'Incomplete Profile'],
+        recommendations: ['Block Profile', 'Report to Moderators', 'Enable Privacy Controls', 'Monitor Cross-Platform', 'Consider Legal Action']
+      };
+      const csvData = 'Field,Value\nProfile,@shadow_analyst\nPlatform,Twitter / X\nRisk Score,87%\nAnalysis Date,' + dateStr + '\nAccount Age,2 months\nFollowers,847\nStatus,HIGH RISK';
+      const jsonData = JSON.stringify(reportData, null, 2);
+      const exports = [
+        { name: 'PDF', filename: `SatyaScan_Report_${dateStr}_${timeStr}.pdf`, type: 'PDF Document' },
+        { name: 'CSV', filename: `SatyaScan_Data_${dateStr}_${timeStr}.csv`, type: 'Spreadsheet' },
+        { name: 'JSON', filename: `SatyaScan_Report_${dateStr}_${timeStr}.json`, type: 'Raw Data' }
+      ];
+      statusDiv.innerHTML = '<div style="background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.2);border-radius:8px;padding:16px"><div style="font-family:Space Mono,monospace;font-size:0.85rem;color:#00ff88;margin-bottom:12px;font-weight:600">✓ Exports Generated Successfully</div><div style="display:flex;flex-direction:column;gap:8px">' + exports.map(e => `<div style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:rgba(224,240,232,0.8)"><i data-lucide="check-circle" style="width:14px;height:14px;color:#00ff88;flex-shrink:0"></i><div><div style="font-weight:600">${e.type}</div><div style="color:rgba(224,240,232,0.5)">${e.filename}</div></div></div>`).join('') + '</div></div>';
+      btn.textContent = 'GENERATE & DOWNLOAD';
+      btn.disabled = false;
+      lucide.createIcons();
+      setTimeout(() => {
+        statusDiv.style.display = 'none';
+      }, 4000);
+    }, 1800);
+  }
+  function dismissAlert() {
+    document.getElementById('alert-system-page').style.display = 'none';
+    document.getElementById('landing-page').style.display = 'block';
+    document.getElementById('app-wrapper').scrollTop = 0;
+  }
+  function generateReport() {
+    document.getElementById('results-dashboard-page').style.display = 'none';
+    document.getElementById('report-page').style.display = 'block';
+    document.getElementById('app-wrapper').scrollTop = 0;
+    lucide.createIcons();
+  }
+  function blockProfile() {
+    alert('Profile blocked successfully');
+  }
+
+  // Scan simulation
+  function runScan() {
+    const input = document.getElementById('scan-input');
+    const result = document.getElementById('scan-result');
+    const btn = document.getElementById('scan-btn');
+    if (!input.value.trim()) { input.focus(); return; }
+    btn.textContent = 'Scanning...';
+    btn.disabled = true;
+    result.style.display = 'block';
+    result.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:#00ff88;font-size:0.85rem"><div style="width:16px;height:16px;border:2px solid #00ff88;border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite"></div>Analyzing profile patterns...</div>';
+    const style = document.createElement('style');
+    style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(style);
+    setTimeout(() => {
+      const outcomes = [
+        { status: 'SAFE', color: '#00ff88', bg: 'rgba(0,255,136,0.1)', icon: 'check-circle', msg: 'Profile appears authentic. No suspicious patterns detected.' },
+        { status: 'WARNING', color: '#ffaa00', bg: 'rgba(255,170,0,0.1)', icon: 'alert-triangle', msg: 'Some inconsistencies found. Account age and activity patterns are unusual.' },
+        { status: 'THREAT', color: '#ff4444', bg: 'rgba(255,68,68,0.1)', icon: 'shield-alert', msg: 'High-risk profile detected. Multiple fake indicators found.' }
+      ];
+      const o = outcomes[Math.floor(Math.random() * outcomes.length)];
+      result.innerHTML = `<div style="display:flex;align-items:center;gap:10px;padding:12px;border-radius:8px;background:${o.bg};border:1px solid ${o.color}22"><i data-lucide="${o.icon}" style="width:20px;height:20px;color:${o.color};flex-shrink:0"></i><div><span style="font-family:'Space Mono',monospace;font-size:0.75rem;color:${o.color}">${o.status}</span><div style="font-size:0.85rem;color:rgba(224,240,232,0.7);margin-top:2px">${o.msg}</div></div></div>`;
+      btn.textContent = 'Scan Now';
+      btn.disabled = false;
+      lucide.createIcons();
+    }, 2000);
+  }
+
+  // Profile analysis
+  function analyzeProfile() {
+    const input = document.getElementById('profile-input');
+    const error = document.getElementById('analysis-error');
+    const btn = document.getElementById('analyze-btn');
+    if (!input.value.trim()) {
+      input.focus();
+      error.style.display = 'block';
+      error.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:12px;border-radius:8px;background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3)"><i data-lucide="alert-circle" style="width:16px;height:16px;color:#ff4444;flex-shrink:0"></i><span style="font-size:0.85rem;color:rgba(224,240,232,0.7)">Please enter a username or profile link</span></div>';
+      lucide.createIcons();
+      return;
+    }
+    error.style.display = 'none';
+    btn.textContent = 'Analyzing...';
+    btn.disabled = true;
+    // Show loading screen
+    document.getElementById('landing-page').style.display = 'none';
+    document.getElementById('analysis-loading-page').style.display = 'block';
+    document.getElementById('app-wrapper').scrollTop = 0;
+    lucide.createIcons();
+    setTimeout(() => {
+      document.getElementById('analysis-loading-page').style.display = 'none';
+      document.getElementById('results-dashboard-page').style.display = 'block';
+      document.getElementById('app-wrapper').scrollTop = 0;
+      btn.textContent = 'Analyse Profile';
+      btn.disabled = false;
+      lucide.createIcons();
+    }, 3000);
+  }
+
+  // Element SDK
+  const defaultConfig = {
+    hero_title: 'Detect Truth Behind Profiles',
+    hero_subtitle: 'AI-powered analysis to unmask fake profiles, detect cyberstalkers, and protect your digital identity in real-time.',
+    cta_text: 'View Dashboard',
+    background_color: '#080f0c',
+    accent_color: '#00ff88',
+    text_color: '#e0f0e8',
+    card_color: '#0f1914',
+    surface_color: '#111a15',
+    font_family: 'Space Mono',
+    font_size: 16
+  };
+
+  function applyConfig(config) {
+    const t = config.hero_title || defaultConfig.hero_title;
+    document.getElementById('hero-title').innerHTML = t.replace(/(Profiles|profiles)/g, '<span style="color:' + (config.accent_color || defaultConfig.accent_color) + ';position:relative;display:inline-block">$1<span class="scan-line" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none"></span></span>');
+    document.getElementById('hero-subtitle').textContent = config.hero_subtitle || defaultConfig.hero_subtitle;
+    document.getElementById('hero-cta').textContent = config.cta_text || defaultConfig.cta_text;
+    const bg = config.background_color || defaultConfig.background_color;
+    const ac = config.accent_color || defaultConfig.accent_color;
+    const tc = config.text_color || defaultConfig.text_color;
+    document.body.style.background = bg;
+    document.body.style.color = tc;
+    const ff = config.font_family || defaultConfig.font_family;
+    const fs = config.font_size || defaultConfig.font_size;
+    document.querySelectorAll('[style*="Space Mono"]').forEach(el => {
+      el.style.fontFamily = `${ff}, monospace`;
+    });
+    document.getElementById('hero-title').style.fontSize = `clamp(2rem,5vw,${fs * 2.2}px)`;
+    document.getElementById('hero-subtitle').style.fontSize = `${fs * 1.1}px`;
+  }
+
+  window.elementSdk.init({
+    defaultConfig,
+    onConfigChange: async (config) => { applyConfig(config); },
+    mapToCapabilities: (config) => ({
+      recolorables: [
+        { get: () => config.background_color || defaultConfig.background_color, set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+        { get: () => config.card_color || defaultConfig.card_color, set: (v) => { config.card_color = v; window.elementSdk.setConfig({ card_color: v }); } },
+        { get: () => config.text_color || defaultConfig.text_color, set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+        { get: () => config.accent_color || defaultConfig.accent_color, set: (v) => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); } },
+        { get: () => config.surface_color || defaultConfig.surface_color, set: (v) => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } }
+      ],
+      borderables: [],
+      fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: (v) => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
+      fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: (v) => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } }
+    }),
+    mapToEditPanelValues: (config) => new Map([
+      ['hero_title', config.hero_title || defaultConfig.hero_title],
+      ['hero_subtitle', config.hero_subtitle || defaultConfig.hero_subtitle],
+      ['cta_text', config.cta_text || defaultConfig.cta_text]
+    ])
+  });
+
+  lucide.createIcons();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9e7e3edf1385fcad',t:'MTc3NTQ1MTgwMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
